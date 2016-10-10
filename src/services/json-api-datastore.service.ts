@@ -104,19 +104,41 @@ export class JsonApiDatastore {
     return [baseUrl, typeName, idToken, (params ? '?' : ''), this.toQueryString(params)].join('');
   }
 
+  private buildSingleRelationshipData(model: JsonApiModel): any {
+    let relationshipType: string =  Reflect.getMetadata('JsonApiModelConfig', model.constructor).type;
+    let relationShipData: {type: string, id?: string, attributes?: any} = {type: relationshipType};
+    if (model.id) {
+      relationShipData.id = model.id;
+    } else {
+      let dirtyData: any = {};
+      let attributesMetadata: any = Reflect.getMetadata('Attribute', model);
+
+      for (let propertyName in attributesMetadata) {
+        if (attributesMetadata.hasOwnProperty(propertyName)) {
+          let metadata: any = attributesMetadata[propertyName];
+          if (metadata.hasDirtyAttributes) {
+            dirtyData[propertyName] = metadata.newValue;
+          }
+        }
+      }
+      relationShipData.attributes = dirtyData;
+    }
+    return relationShipData;
+  }
+
   private getRelationships(data: any): any {
     let relationships: any;
     for (let key in data) {
       if (data.hasOwnProperty(key)) {
         if (data[key] instanceof JsonApiModel) {
           relationships = relationships || {};
-          let relationshipType: string = Reflect.getMetadata('JsonApiModelConfig', data[key].constructor).type;
           relationships[key] = {
-            data: {
-              type: relationshipType,
-              id: data[key].id
-            }
+            data: this.buildSingleRelationshipData(data[key])
           };
+        } else if (data[key] instanceof Array && data[key].length > 0 && data[key][0] instanceof JsonApiModel) {
+          relationships[key] = {
+            data: data[key].map((model: JsonApiModel) => this.buildSingleRelationshipData(model))
+          }
         }
       }
     }
