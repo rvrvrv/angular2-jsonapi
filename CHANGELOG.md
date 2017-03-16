@@ -1,3 +1,21 @@
+# [3.4.0](https://github.com/ghidoz/angular2-jsonapi/compare/v3.3.0...v3.4.0) (2016-12-17)
+
+### Bug Fixes
+- Make library AOT ready and remove conflicting reflect-metadata import ([#13](https://github.com/ghidoz/angular2-jsonapi/issues/13)) ([#35](https://github.com/ghidoz/angular2-jsonapi/issues/35)) ([8186f8b](https://github.com/ghidoz/angular2-jsonapi/commit/8186f8b))
+
+### Features
+- Ability to work with dates as Date objects ([76c652b](https://github.com/ghidoz/angular2-jsonapi/commit/76c652b))
+- Throw a better error when a relationship is not mapped ([d135e58](https://github.com/ghidoz/angular2-jsonapi/commit/d135e58))
+
+# [3.3.0](https://github.com/ghidoz/angular2-jsonapi/compare/v3.2.1...v3.3.0) (2016-11-01)
+
+### Bug Fixes
+- Override accept/content-type headers instead of adding ([#39](https://github.com/ghidoz/angular2-jsonapi/issues/39)) ([5c1f984](https://github.com/ghidoz/angular2-jsonapi/commit/5c1f984))
+- Remove "hard" dependencies to @angular packages and introduce peerDependencies ([#46](https://github.com/ghidoz/angular2-jsonapi/issues/46)) ([6efe0f8](https://github.com/ghidoz/angular2-jsonapi/commit/6efe0f8))
+
+### Features
+- Support error objects from JSON API specification ([d41ecb9](https://github.com/ghidoz/angular2-jsonapi/commit/d41ecb9))
+
 # [3.2.1](https://github.com/ghidoz/angular2-jsonapi/compare/v3.2.0...v3.2.1) (2016-10-13)
 
 ### Bug Fixes
