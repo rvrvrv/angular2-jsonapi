@@ -44,7 +44,7 @@ export class JsonApiDatastore {
     let modelType = <ModelType<T>>model.constructor;
     let typeName: string = Reflect.getMetadata('JsonApiModelConfig', modelType).type;
     let options: RequestOptions = this.getOptions(headers);
-    let relationships: any = !model.id ? this.getRelationships(model) : undefined;
+    let relationships: any = this.getRelationships(model);
     let url: string = this.buildUrl(modelType, params, model.id);
     let dirtyData: any = {};
     for (let propertyName in attributesMetadata) {
@@ -136,9 +136,10 @@ export class JsonApiDatastore {
             data: this.buildSingleRelationshipData(data[key])
           };
         } else if (data[key] instanceof Array && data[key].length > 0 && data[key][0] instanceof JsonApiModel) {
+          relationships = relationships || {};
           relationships[key] = {
             data: data[key].map((model: JsonApiModel) => this.buildSingleRelationshipData(model))
-          }
+          };
         }
       }
     }
