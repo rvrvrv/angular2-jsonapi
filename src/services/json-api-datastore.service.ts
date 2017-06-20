@@ -279,7 +279,7 @@ export class JsonApiDatastore {
         let propertyHasMany: any = _.find(hasMany, (property) => {
           return modelsTypes[property.relationship] === model.constructor;
         });
-        if (propertyHasMany) {
+        if (propertyHasMany && relationshipModel[propertyHasMany.propertyName]) {
           relationshipModel[propertyHasMany.propertyName].push(model);
         }
       }
