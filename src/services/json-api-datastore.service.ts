@@ -135,10 +135,14 @@ export class JsonApiDatastore {
           relationships[key] = {
             data: this.buildSingleRelationshipData(data[key])
           };
-        } else if (data[key] instanceof Array && data[key].length > 0 && data[key][0] instanceof JsonApiModel) {
+        } else if (data[key] instanceof Array) {
           relationships = relationships || {};
+          let relationshipsData = data[key],
+              modelRelationships = _.filter(relationshipsData, function(entry) {
+                return entry instanceof JsonApiModel;
+              });
           relationships[key] = {
-            data: data[key].map((model: JsonApiModel) => this.buildSingleRelationshipData(model))
+            data: modelRelationships.map((model: JsonApiModel) => this.buildSingleRelationshipData(model))
           };
         }
       }
