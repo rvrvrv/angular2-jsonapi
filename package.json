@@ -1,5 +1,5 @@
 {
-  "name": "@hristozov/angular2-jsonapi",
+  "name": "@asteasolutions/angular2-jsonapi",
   "version": "3.5.3",
   "description": "A lightweight Angular 2 adapter for JSON API",
   "scripts": {
