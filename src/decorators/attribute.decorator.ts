@@ -1,23 +1,23 @@
 import * as moment from 'moment';
 
 export function Attribute(config: any = {}) {
-  return function (target: any, propertyName: string) {
+  return function(target: any, propertyName: string) {
 
-    let converter = function(dataType: any, value: any, forSerialisation = false): any {
-      if (!forSerialisation) {
-        if (dataType === Date) {
-          return moment(value).toDate();
-        }
-      } else {
-        if (dataType === Date) {
-          return moment(value).format(moment.defaultFormatUtc);
-        }
+    const serialize = (dataType: any, value: any) => {
+      if (dataType === Date || dataType === 'Date') {
+        return moment(value).format(moment.defaultFormatUtc);
       }
-
       return value;
     };
 
-    let saveAnnotations = function (hasDirtyAttributes: boolean, oldValue: any, newValue: any, isNew: boolean) {
+    const deserialize = (dataType: any, value: any) => {
+      if (dataType === Date || dataType === 'Date') {
+        return moment(value).toDate();
+      }
+      return value;
+    };
+
+    let saveAnnotations = function(hasDirtyAttributes: boolean, oldValue: any, newValue: any, isNew: boolean) {
       let annotations = Reflect.getMetadata('Attribute', target) || {};
       let targetType = Reflect.getMetadata('design:type', target, propertyName);
 
@@ -26,18 +26,18 @@ export function Attribute(config: any = {}) {
         hasDirtyAttributes: hasDirtyAttributes,
         oldValue: oldValue,
         newValue: newValue,
-        serialisationValue: converter(targetType, newValue, true)
+        serialisationValue: serialize(targetType, newValue),
       };
       Reflect.defineMetadata('Attribute', annotations, target);
     };
 
-    let getter = function () {
+    let getter = function() {
       return this['_' + propertyName];
     };
 
-    let setter = function (newVal: any) {
+    let setter = function(newVal: any) {
       let targetType = Reflect.getMetadata('design:type', target, propertyName);
-      let convertedValue = converter(targetType, newVal);
+      let convertedValue = deserialize(targetType, newVal);
       if (convertedValue !== this['_' + propertyName]) {
         saveAnnotations(true, this['_' + propertyName], newVal, !this.id);
         this['_' + propertyName] = convertedValue;
