@@ -5,7 +5,7 @@ export function Attribute(config: any = {}) {
 
     const serialize = (dataType: any, value: any) => {
       if (dataType === Date || dataType === 'Date') {
-        return moment(value).format(moment.defaultFormatUtc);
+        return moment(value).format(moment.defaultFormat);
       }
       return value;
     };
