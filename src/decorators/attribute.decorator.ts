@@ -4,14 +4,14 @@ export function Attribute(config: any = {}) {
   return function(target: any, propertyName: string) {
 
     const serialize = (dataType: any, value: any) => {
-      if (dataType === Date || dataType === 'Date') {
+      if ((dataType === Date || dataType === 'Date') && value) {
         return moment(value).format(moment.defaultFormat);
       }
       return value;
     };
 
     const deserialize = (dataType: any, value: any) => {
-      if (dataType === Date || dataType === 'Date') {
+      if ((dataType === Date || dataType === 'Date') && value) {
         return moment(value).toDate();
       }
       return value;
