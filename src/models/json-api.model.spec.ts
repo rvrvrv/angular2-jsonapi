@@ -5,11 +5,13 @@ import {
     AUTHOR_CREATED, AUTHOR_UPDATED, getAuthorData, getIncludedBooks, BOOK_TITLE, BOOK_PUBLISHED, CHAPTER_TITLE
 } from '../../test/fixtures/author.fixture';
 import { Book } from '../../test/models/book.model';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { Http, BaseRequestOptions, ConnectionBackend } from '@angular/http';
 import { MockBackend } from '@angular/http/testing';
 import { Datastore } from '../../test/datastore.service';
 import { Chapter } from '../../test/models/chapter.model';
 import * as moment from 'moment';
+import {} from 'jasmine';
 
 let datastore: Datastore;
 
@@ -18,14 +20,10 @@ describe('JsonApiModel', () => {
   beforeEach(() => {
 
     TestBed.configureTestingModule({
+      imports: [
+        HttpClientTestingModule,
+      ],
       providers: [
-        {
-          provide: Http, useFactory: (backend: ConnectionBackend, defaultOptions: BaseRequestOptions) => {
-            return new Http(backend, defaultOptions);
-          }, deps: [MockBackend, BaseRequestOptions]
-        },
-        MockBackend,
-        BaseRequestOptions,
         Datastore
       ]
     });
@@ -61,7 +59,6 @@ describe('JsonApiModel', () => {
   });
 
   describe('syncRelationships', () => {
-
     let author: Author;
 
     it('should return the object when there is no relationship included', () => {
@@ -77,7 +74,6 @@ describe('JsonApiModel', () => {
     });
 
     describe('parseHasMany', () => {
-
       it('should return the parsed relationships when one is included', () => {
         const BOOK_NUMBER = 4;
         const DATA = getAuthorData('books', BOOK_NUMBER);

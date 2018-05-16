@@ -13,7 +13,6 @@ module.exports = function (config) {
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
       require('karma-spec-reporter'),
-      require('karma-remap-istanbul'),
       require('karma-coverage')
     ],
 
@@ -38,7 +37,7 @@ module.exports = function (config) {
       }
     },
 
-    reporters: ['spec', 'karma-remap-istanbul'],
+    reporters: ['spec'],
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,

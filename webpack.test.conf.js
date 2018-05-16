@@ -12,6 +12,11 @@ module.exports = {
                 test: /\.ts$/,
                 loader: 'ts',
                 exclude: [/node_modules/]
+            },
+            {
+                test: /\.js.map$/,
+                loader: 'ignore-loader',
+                exclude: [/node_modules/]
             }
         ],
         postLoaders: [
