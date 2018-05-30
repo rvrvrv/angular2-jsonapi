@@ -6,8 +6,6 @@ import {
 } from '../../test/fixtures/author.fixture';
 import { Book } from '../../test/models/book.model';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { Http, BaseRequestOptions, ConnectionBackend } from '@angular/http';
-import { MockBackend } from '@angular/http/testing';
 import { Datastore } from '../../test/datastore.service';
 import { Chapter } from '../../test/models/chapter.model';
 import * as moment from 'moment';

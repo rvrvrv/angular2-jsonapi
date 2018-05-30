@@ -29,7 +29,7 @@ export class JsonApiDatastore {
     let url: string = this.buildUrl(modelType, params);
     return this.http.get(url, options).pipe(
         map((res: HttpResponse<Object>) => this.extractQueryData(res, modelType)),
-        catchError((res: HttpErrorResponse) => this.handleError(res)), );
+        catchError((res: HttpErrorResponse) => this.handleError<T[]>(res)), );
   }
 
   findRecord<T extends JsonApiModel>(modelType: ModelType<T>, id: string, params?: any, headers?: HttpHeaders): Observable<T> {
@@ -37,7 +37,7 @@ export class JsonApiDatastore {
     let url: string = this.buildUrl(modelType, params, id);
     return this.http.get(url, options).pipe(
         map((res: HttpResponse<Object>) => this.extractRecordData(res, modelType)),
-        catchError((res: HttpErrorResponse) => this.handleError(res)), );
+        catchError((res: HttpErrorResponse) => this.handleError<T>(res)), );
   }
 
   createRecord<T extends JsonApiModel>(modelType: ModelType<T>, data?: any): T {
@@ -77,7 +77,7 @@ export class JsonApiDatastore {
         map((res: HttpResponse<Object>) => this.extractRecordData(res, modelType, model)),
         map((res: T) => this.resetMetadataAttributes(res, attributesMetadata, modelType)),
         map((res: T) => this.updateRelationships(res, relationships)),
-        catchError((res: HttpErrorResponse) => this.handleError(res)), );
+        catchError((res: HttpErrorResponse) => this.handleError<T>(res)), );
   }
 
   deleteRecord<T extends JsonApiModel>(modelType: ModelType<T>, id: string, headers?: HttpHeaders): Observable<void> {
@@ -85,7 +85,7 @@ export class JsonApiDatastore {
     let url: string = this.buildUrl(modelType, null, id);
     return this.http.delete(url, options).pipe(
         map((res: HttpResponse<{}>) => {}),
-        catchError((res: HttpErrorResponse) => this.handleError(res)));
+        catchError((res: HttpErrorResponse) => this.handleError<void>(res)));
   }
 
   peekRecord<T extends JsonApiModel>(modelType: ModelType<T>, id: string): T {

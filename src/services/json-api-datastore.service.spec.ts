@@ -1,4 +1,4 @@
-import {TestBed} from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { Author } from '../../test/models/author.model';
 import {
     AUTHOR_ID, AUTHOR_NAME, AUTHOR_BIRTH,
@@ -8,8 +8,7 @@ import {
   HttpRequest, HttpHeaders
 } from '@angular/common/http';
 import { HttpTestingController, HttpClientTestingModule } from '@angular/common/http/testing';
-import {MockBackend, MockConnection} from '@angular/http/testing';
-import {Datastore, BASE_URL} from '../../test/datastore.service';
+import { Datastore, BASE_URL } from '../../test/datastore.service';
 import { ErrorResponse } from '../models/error-response.model';
 import * as moment from 'moment';
 import {} from 'jasmine';
@@ -36,7 +35,6 @@ describe('JsonApiDatastore', () => {
         datastore = TestBed.get(Datastore);
         http = TestBed.get(HttpTestingController);
     });
-
 
     describe('query', () => {
 
