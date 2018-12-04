@@ -3,37 +3,72 @@ import { HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { JsonApiDatastore, ModelType } from '../services/json-api-datastore.service';
 import {} from 'reflect-metadata';
+import { ModelConfig } from '../interfaces/model-config.interface';
+import { AttributeMetadata } from '../constants/symbols';
+
+/**
+ * HACK/FIXME:
+ * Type 'symbol' cannot be used as an index type.
+ * TypeScript 2.9.x
+ * See https://github.com/Microsoft/TypeScript/issues/24587.
+ */
+// tslint:disable-next-line:variable-name
+const AttributeMetadataIndex: string = AttributeMetadata as any;
 
 export class JsonApiModel {
-
   id: string;
+  public modelInitialization: boolean = false;
+
   [key: string]: any;
 
-  constructor(private _datastore: JsonApiDatastore, data?: any) {
+  lastSyncModels: Array<any>;
+
+  constructor(private internalDatastore: JsonApiDatastore, data?: any) {
     if (data) {
+      this.modelInitialization = true;
       this.id = data.id;
-      _.extend(this, data.attributes);
+      Object.assign(this, data.attributes);
+      this.modelInitialization = false;
     }
   }
 
-  syncRelationships(data: any, included: any, level: number): void {
+  public isModelInitialization(): boolean {
+    return this.modelInitialization;
+  }
+
+  public syncRelationships(data: any, included: any, remainingModels?: Array<any>): void {
+    if (this.lastSyncModels === included) {
+      return;
+    }
+
     if (data) {
-      this.parseHasMany(data, included, level);
-      this.parseBelongsTo(data, included, level);
+      console.log('DATA', data);
+      let modelsForProcessing = remainingModels;
+
+      if (!modelsForProcessing) {
+        modelsForProcessing = [].concat(included);
+      }
+
+      this.parseHasMany(data, included, modelsForProcessing);
+      this.parseBelongsTo(data, included, modelsForProcessing);
     }
+
+    this.lastSyncModels = included;
   }
 
-  save(params?: any, headers?: HttpHeaders): Observable<this> {
-    let attributesMetadata: any = Reflect.getMetadata('Attribute', this);
-    return this._datastore.saveRecord(attributesMetadata, this, params, headers);
+  public save(params?: any, headers?: HttpHeaders, customUrl?: string): Observable<this> {
+    this.checkChanges();
+    const attributesMetadata: any = this[AttributeMetadataIndex];
+    return this.internalDatastore.saveRecord(attributesMetadata, this, params, headers, customUrl);
   }
 
   get hasDirtyAttributes() {
-    let attributesMetadata: any = Reflect.getMetadata('Attribute', this);
+    this.checkChanges();
+    const attributesMetadata: any = this[AttributeMetadataIndex];
     let hasDirtyAttributes = false;
-    for (let propertyName in attributesMetadata) {
+    for (const propertyName in attributesMetadata) {
       if (attributesMetadata.hasOwnProperty(propertyName)) {
-        let metadata: any = attributesMetadata[propertyName];
+        const metadata: any = attributesMetadata[propertyName];
         if (metadata.hasDirtyAttributes) {
           hasDirtyAttributes = true;
           break;
@@ -43,107 +78,208 @@ export class JsonApiModel {
     return hasDirtyAttributes;
   }
 
-  rollbackAttributes(): void {
-    let attributesMetadata: any = Reflect.getMetadata('Attribute', this);
-    let metadata: any;
-    for (let propertyName in attributesMetadata) {
+  private checkChanges() {
+    const attributesMetadata: any = this[AttributeMetadata];
+    for (const propertyName in attributesMetadata) {
       if (attributesMetadata.hasOwnProperty(propertyName)) {
-        if (attributesMetadata[propertyName].hasDirtyAttributes) {
-          this[propertyName] = attributesMetadata[propertyName].oldValue;
-          metadata = {
-            hasDirtyAttributes: false,
-            newValue: attributesMetadata[propertyName].oldValue,
-            oldValue: undefined
-          };
-          attributesMetadata[propertyName] = metadata;
+        const metadata: any = attributesMetadata[propertyName];
+        if (metadata.nested) {
+          this[AttributeMetadata][propertyName].hasDirtyAttributes = !_.isEqual(
+            attributesMetadata[propertyName].oldValue,
+            attributesMetadata[propertyName].newValue
+          );
+          this[AttributeMetadata][propertyName].serialisationValue = attributesMetadata[propertyName].converter(
+            Reflect.getMetadata('design:type', this, propertyName),
+            _.cloneDeep(attributesMetadata[propertyName].newValue),
+            true
+          );
         }
       }
     }
-    Reflect.defineMetadata('Attribute', attributesMetadata, this);
   }
 
-  private parseHasMany(data: any, included: any, level: number): void {
-    let hasMany: any = Reflect.getMetadata('HasMany', this);
-    if (hasMany) {
-      for (let metadata of hasMany) {
-        let relationship: any = data.relationships ? data.relationships[metadata.relationship] : null;
-        if (relationship && relationship.data && relationship.data.length > 0) {
-          let typeName: string = relationship.data[0].type;
-          let modelType: ModelType<this> = Reflect.getMetadata('JsonApiDatastoreConfig', this._datastore.constructor).models[typeName];
+  public rollbackAttributes(): void {
+    const attributesMetadata: any = this[AttributeMetadataIndex];
+    for (const propertyName in attributesMetadata) {
+      if (attributesMetadata.hasOwnProperty(propertyName)) {
+        if (attributesMetadata[propertyName].hasDirtyAttributes) {
+          this[propertyName] = _.cloneDeep(attributesMetadata[propertyName].oldValue);
+        }
+      }
+    }
+  }
+
+  get modelConfig(): ModelConfig {
+    return Reflect.getMetadata('JsonApiModelConfig', this.constructor);
+  }
+
+
+  private parseHasMany(data: any, included: any, remainingModels: Array<any>): void {
+    const hasMany: any = Reflect.getMetadata('HasMany', this);
+    console.log(hasMany, data, included);
+
+    if (!hasMany) {
+      return;
+    }
+    for (const metadata of hasMany) {
+      const relationship: any = data.relationships ? data.relationships[metadata.relationship] : null;
+      console.log('relationship', relationship);
+
+      if (!(relationship && relationship.data && relationship.data.length > 0)) {
+        continue;
+      }
+
+      let allModels: JsonApiModel[] = [];
+      const modelTypesFetched: any = [];
+
+      for (const typeIndex of Object.keys(relationship.data)) {
+        const typeName: string = relationship.data[typeIndex].type;
+        console.log(typeName);
+
+        if (!_.includes(modelTypesFetched, typeName)) {
+          modelTypesFetched.push(typeName);
+          // tslint:disable-next-line:max-line-length
+          const modelType: ModelType<this> = Reflect.getMetadata('JsonApiDatastoreConfig', this.internalDatastore.constructor).models[typeName];
+
+          if (!modelType) {
+            throw { message: 'parseHasMany - Model type for relationship ' + typeName + ' not found.' };
+          }
+          const relationshipModels: JsonApiModel[] = this.getHasManyRelationship(
+            modelType,
+            relationship.data,
+            included,
+            typeName,
+            remainingModels
+          );
+          console.log('Models', relationshipModels);
+
+          if (relationshipModels.length > 0) {
+            allModels = allModels.concat(relationshipModels);
+          }
+        }
+
+        if (allModels.length > 0) {
+          this[metadata.propertyName] = allModels;
+        }
+      }
+    }
+  }
+
+  private parseBelongsTo(data: any, included: Array<any>, remainingModels: Array<any>): void {
+    const belongsTo: any = Reflect.getMetadata('BelongsTo', this);
+    console.log(belongsTo);
+
+    if (!belongsTo) {
+      return;
+    }
+    console.log(belongsTo, data, included);
+    for (const metadata of belongsTo) {
+      const relationship: any = data.relationships ? data.relationships[metadata.relationship] : null;
+      if (relationship && relationship.data) {
+        const dataRelationship: any = (relationship.data instanceof Array) ? relationship.data[0] : relationship.data;
+        if (dataRelationship) {
+          const typeName: string = dataRelationship.type;
+          // tslint:disable-next-line:max-line-length
+          const modelType: ModelType<this> = Reflect.getMetadata('JsonApiDatastoreConfig', this.internalDatastore.constructor).models[typeName];
+
           if (modelType) {
-            let relationshipModel: JsonApiModel[] = this.getHasManyRelationship(modelType, relationship.data, included, typeName, level);
-            if (relationshipModel.length > 0) {
+            const relationshipModel = this.getBelongsToRelationship(
+              modelType,
+              dataRelationship,
+              included,
+              typeName,
+              remainingModels
+            );
+            console.log('Model', relationshipModel);
+
+            if (relationshipModel) {
               this[metadata.propertyName] = relationshipModel;
             }
           } else {
-            throw {message: 'parseHasMany - Model type for relationship ' + typeName + ' not found.'};
+            throw { message: 'parseBelongsTo - Model type for relationship ' + typeName + ' not found.' };
           }
         }
       }
     }
   }
 
-  private parseBelongsTo(data: any, included: any, level: number): void {
-    let belongsTo: any = Reflect.getMetadata('BelongsTo', this);
-    if (belongsTo) {
-      for (let metadata of belongsTo) {
-        let relationship: any = data.relationships ? data.relationships[metadata.relationship] : null;
-        if (relationship && relationship.data) {
-          let dataRelationship: any = (relationship.data instanceof Array) ? relationship.data[0] : relationship.data;
-          if (dataRelationship) {
-            let typeName: string = dataRelationship.type;
-            let modelType: ModelType<this> = Reflect.getMetadata('JsonApiDatastoreConfig', this._datastore.constructor).models[typeName];
-            if (modelType) {
-              let relationshipModel: JsonApiModel = this.getBelongsToRelationship(modelType, dataRelationship, included, typeName, level);
-              if (relationshipModel) {
-                this[metadata.propertyName] = relationshipModel;
-              }
-            } else {
-              throw { message: 'parseBelongsTo - Model type for relationship ' + typeName + ' not found.' };
-            }
-          }
-        }
-      }
-    }
-  }
+  private getHasManyRelationship<T extends JsonApiModel>(
+    modelType: ModelType<T>,
+    data: any,
+    included: any,
+    typeName: string,
+    remainingModels: Array<any>
+  ): Array<T> {
+    const relationshipList: Array<T> = [];
 
-  private getHasManyRelationship<T extends this>(modelType: ModelType<T>, data: any, included: any, typeName: string, level: number): T[] {
-    let relationshipList: T[] = [];
     data.forEach((item: any) => {
-      let relationshipData: any = _.find(included, {id: item.id, type: typeName});
+      console.log('gethasMany');
+      const relationshipData: any = _.chain(remainingModels)
+        .filter(['id', item.id])
+        .filter(['type', typeName])
+        .first()
+        .value();
+
       if (relationshipData) {
-        let newObject: T = this.createOrPeek(modelType, relationshipData);
-        if (level <= 1) {
-          newObject.syncRelationships(relationshipData, included, level + 1);
-        }
+        const newObject: T = this.createOrPeek(modelType, relationshipData);
+
+        const indexOfNewlyFoundModel = remainingModels.indexOf(relationshipData);
+        const modelsForProcessing = remainingModels.concat([]);
+        modelsForProcessing.splice(indexOfNewlyFoundModel, 1);
+
+        newObject.syncRelationships(relationshipData, included, modelsForProcessing);
+
         relationshipList.push(newObject);
       }
     });
+
     return relationshipList;
   }
 
 
-  private getBelongsToRelationship<T extends this>(modelType: ModelType<T>, data: any, included: any, typeName: string, level: number): T {
-    let id: string = data.id;
-    let relationshipData: any = _.find(included, {id: id, type: typeName});
+  private getBelongsToRelationship<T extends JsonApiModel>(
+    modelType: ModelType<T>,
+    data: any,
+    included: Array<any>,
+    typeName: string,
+    remainingModels: Array<any>
+  ): T | null {
+    const id: string = data.id;
+    
+    console.log('getBelongsToRe');
+
+    const relationshipData: any = _.chain(remainingModels)
+      .filter(['id', id])
+      .filter(['type', typeName])
+      .first()
+      .value();
+
     if (relationshipData) {
-      let newObject: T = this.createOrPeek(modelType, relationshipData);
-      if (level <= 1) {
-        newObject.syncRelationships(relationshipData, included, level + 1);
-      }
+      const newObject: T = this.createOrPeek(modelType, relationshipData);
+
+      const indexOfNewlyFoundModel = remainingModels.indexOf(relationshipData);
+      const modelsForProcessing = remainingModels.concat([]);
+      modelsForProcessing.splice(indexOfNewlyFoundModel, 1);
+
+      newObject.syncRelationships(relationshipData, included, modelsForProcessing);
+
       return newObject;
     }
-    return this._datastore.peekRecord(modelType, id);
+
+    return this.internalDatastore.peekRecord(modelType, id);
   }
 
-  private createOrPeek<T extends this>(modelType: ModelType<T>, data: any): T {
-    let peek = this._datastore.peekRecord(modelType, data.id);
+  private createOrPeek<T extends JsonApiModel>(modelType: ModelType<T>, data: any): T {
+    const peek = this.internalDatastore.peekRecord(modelType, data.id);
+
     if (peek) {
+      _.extend(peek, this.internalDatastore.transformSerializedNamesToPropertyNames(modelType, data.attributes));
       return peek;
     }
-    let newObject: T = new modelType(this._datastore, data);
-    this._datastore.addToStore(newObject);
+
+    const newObject: T = this.internalDatastore.deserializeModel(modelType, data);
+    this.internalDatastore.addToStore(newObject);
+
     return newObject;
   }
-
 }

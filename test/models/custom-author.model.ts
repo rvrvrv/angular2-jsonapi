@@ -4,22 +4,25 @@ import { JsonApiModel } from '../../src/models/json-api.model';
 import { Attribute } from '../../src/decorators/attribute.decorator';
 import { HasMany } from '../../src/decorators/has-many.decorator';
 import { PageMetaData } from './page-meta-data';
-import { JsonModelConverter} from '../../src/converters/json-model/json-model.converter';
-import { NestedAttribute } from '../../src/decorators/nested-attribute.decorator';
-import { School } from './school.model';
+
+export const AUTHOR_API_VERSION = 'v3';
+export const AUTHOR_MODEL_ENDPOINT_URL = 'custom-author';
 
 @JsonApiModelConfig({
+  apiVersion: AUTHOR_API_VERSION,
+  modelEndpointUrl: AUTHOR_MODEL_ENDPOINT_URL,
   type: 'authors',
-  meta: PageMetaData,
+  meta: PageMetaData
 })
-export class Author extends JsonApiModel {
+export class CustomAuthor extends JsonApiModel {
   @Attribute()
   name: string;
 
-  @Attribute({
-    serializedName: 'dob'
-  })
+  @Attribute()
   date_of_birth: Date;
+
+  @Attribute()
+  date_of_death: Date;
 
   @Attribute()
   created_at: Date;
@@ -29,7 +32,4 @@ export class Author extends JsonApiModel {
 
   @HasMany()
   books: Book[];
-
-  @NestedAttribute({ converter: new JsonModelConverter<any>(School) })
-  school: School;
 }

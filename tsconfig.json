@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "noImplicitAny": true,
+    "strictNullChecks": true,
+    // Angular is currently not compatible with recent TS version + strictNullCheck: https://github.com/angular/angular/issues/17863
+    "skipLibCheck": true,
     "module": "commonjs",
     "target": "ES5",
     "emitDecoratorMetadata": true,
@@ -9,10 +12,7 @@
     "declaration": true,
     "outDir": "./dist",
     "lib": [
-      "es5",
-      "es2015.iterable",
-      "es2015.collection",
-      "es2015.promise",
+      "es2015",
       "dom"
     ],
     "typeRoots": [
@@ -40,6 +40,6 @@
     "inlineSourceMap": true
   },
   "angularCompilerOptions": {
-    "genDir": "src/compiled"
+    "skipTemplateCodegen": true
   }
 }

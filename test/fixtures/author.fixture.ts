@@ -1,3 +1,9 @@
+import {getSampleBook} from './book.fixture';
+import { getSampleChapter } from './chapter.fixture';
+import { getSampleSection } from './section.fixture';
+import { getSampleParagraph } from './paragraph.fixture';
+import { getSampleSentence } from './sentence.fixture';
+
 export const AUTHOR_ID = '1';
 export const AUTHOR_NAME = 'J. R. R. Tolkien';
 export const AUTHOR_BIRTH = '1892-01-03';
@@ -10,107 +16,100 @@ export const BOOK_PUBLISHED = '1954-07-29';
 
 export const CHAPTER_TITLE = 'The Return Journey';
 
-export function getAuthorData(relationship?: string, total?: number): any {
-  let response: any = {
-    'id': AUTHOR_ID,
-    'type': 'authors',
-    'attributes': {
-      'name': AUTHOR_NAME,
-      'date_of_birth': AUTHOR_BIRTH,
-      'date_of_death': AUTHOR_DEATH,
-      'created_at': AUTHOR_CREATED,
-      'updated_at': AUTHOR_UPDATED
+export function getAuthorData(relationship?: string, total: number = 0): any {
+  const response: any = {
+    id: AUTHOR_ID,
+    type: 'authors',
+    attributes: {
+      name: AUTHOR_NAME,
+      dob: AUTHOR_BIRTH,
+      date_of_death: AUTHOR_DEATH,
+      created_at: AUTHOR_CREATED,
+      updated_at: AUTHOR_UPDATED
     },
-    'relationships': {
-      'books': {'links': {'self': '/v1/authors/1/relationships/books', 'related': '/v1/authors/1/books'}}
+    relationships: {
+      books: {
+        links: {
+          self: '/v1/authors/1/relationships/books',
+          related: '/v1/authors/1/books'
+        }
+      }
     },
-    'links': {'self': '/v1/authors/1'}
+    links: {
+      self: '/v1/authors/1'
+    }
   };
+
   if (relationship && relationship.indexOf('books') !== -1) {
     response.relationships.books.data = [];
+
     for (let i = 1; i <= total; i++) {
       response.relationships.books.data.push({
-        'id': '' + i,
-        'type': 'books'
+        id: '' + i,
+        type: 'books'
       });
     }
   }
-  return response;
-};
 
-export function getIncludedBooks(totalBooks: number, relationship?: string, totalChapters?: number): any[] {
-  let responseArray: any[] = [];
+  return response;
+}
+
+export function getIncludedBooks(totalBooks: number, relationship?: string, totalChapters: number = 0): any[] {
+  const responseArray: any[] = [];
   let chapterId = 0;
+
   for (let i = 1; i <= totalBooks; i++) {
-    let book: any = {
-      'id': '' + i,
-      'type': 'books',
-      'attributes': {
-        'date_published': BOOK_PUBLISHED,
-        'title': BOOK_TITLE,
-        'created_at': '2016-09-26T21:12:41Z',
-        'updated_at': '2016-09-26T21:12:41Z'
-      },
-      'relationships': {
-        'chapters': {
-          'links': {
-            'self': '/v1/books/1/relationships/chapters',
-            'related': '/v1/books/1/chapters'
-          }
-        },
-        'firstChapter': {
-          'links': {
-            'self': '/v1/books/1/relationships/firstChapter',
-            'related': '/v1/books/1/firstChapter'
-          }
-        },
-        'author': {
-          'links': {
-            'self': '/v1/books/1/relationships/author',
-            'related': '/v1/books/1/author'
-          },
-          'data': {
-            'id': AUTHOR_ID,
-            'type': 'authors'
-          }
-        }
-      },
-      'links': {'self': '/v1/books/1'}
-    };
+    const book: any = getSampleBook(i, AUTHOR_ID);
+    responseArray.push(book);
+
     if (relationship && relationship.indexOf('books.chapters') !== -1) {
       book.relationships.chapters.data = [];
       for (let ic = 1; ic <= totalChapters; ic++) {
         chapterId++;
         book.relationships.chapters.data.push({
-          'id': '' + chapterId,
-          'type': 'chapters'
+          id: `${chapterId}`,
+          type: 'chapters'
         });
-        responseArray.push({
-          'id': '' + chapterId,
-          'type': 'chapters',
-          'attributes': {
-            'title': CHAPTER_TITLE,
-            'ordering': chapterId,
-            'created_at': '2016-10-01T12:54:32Z',
-            'updated_at': '2016-10-01T12:54:32Z'
-          },
-          'relationships': {
-            'book': {
-              'links': {
-                'self': '/v1/authors/288/relationships/book',
-                'related': '/v1/authors/288/book'
-              },
-              'data': {
-                'id': '' + i,
-                'type': 'books'
-              }
-            }
-          },
-          'links': {'self': '/v1/authors/288'}
-        });
+
+        const chapter = getSampleChapter(i, `${chapterId}`, CHAPTER_TITLE);
+
+        responseArray.push(chapter);
       }
     }
-    responseArray.push(book);
+
+    if (relationship && relationship.indexOf('books.firstChapter') !== -1) {
+      const firstChapterId = '1';
+
+      book.relationships.firstChapter = {
+        data: {
+          id: firstChapterId,
+          type: 'chapters'
+        }
+      };
+
+      const findFirstChapterInclude = responseArray.find((chapter) => chapter.id === firstChapterId);
+
+      if (!findFirstChapterInclude) {
+        const chapter = getSampleChapter(i, `${firstChapterId}`, CHAPTER_TITLE);
+        responseArray.push(chapter);
+      }
+    }
+
+    if (relationship && relationship.indexOf('books.firstChapter.firstSection') !== -1) {
+      const section = getSampleSection('1', '1');
+      responseArray.push(section);
+    }
+
+    if (relationship && relationship.indexOf('books.firstChapter.firstSection.firstParagraph') !== -1) {
+      const paragraph = getSampleParagraph('1', '1');
+      responseArray.push(paragraph);
+    }
+
+    if (relationship && relationship.indexOf('books.firstChapter.firstSection.firstParagraph.firstSentence') !== -1) {
+      const sentence = getSampleSentence('1', '1');
+      responseArray.push(sentence);
+    }
   }
+
   return responseArray;
 }
