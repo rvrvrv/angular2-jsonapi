@@ -1,10 +1,14 @@
 import * as _ from 'lodash';
 import { HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { JsonApiDatastore, ModelType } from '../services/json-api-datastore.service';
+import {
+  JsonApiDatastore,
+  ModelType,
+} from '../services/json-api-datastore.service';
 import {} from 'reflect-metadata';
 import { ModelConfig } from '../interfaces/model-config.interface';
 import { AttributeMetadata } from '../constants/symbols';
+import { HasManyMetadata, BelongsToMetadata } from '../interfaces/relationship_metadata.interface';
 
 /**
  * HACK/FIXME:
@@ -42,7 +46,6 @@ export class JsonApiModel {
     }
 
     if (data) {
-      console.log('DATA', data);
       let modelsForProcessing = remainingModels;
 
       if (!modelsForProcessing) {
@@ -115,15 +118,12 @@ export class JsonApiModel {
 
 
   private parseHasMany(data: any, included: any, remainingModels: Array<any>): void {
-    const hasMany: any = Reflect.getMetadata('HasMany', this);
-    console.log(hasMany, data, included);
-
+    const hasMany: HasManyMetadata = Reflect.getMetadata('HasMany', this);
     if (!hasMany) {
       return;
     }
     for (const metadata of hasMany) {
       const relationship: any = data.relationships ? data.relationships[metadata.relationship] : null;
-      console.log('relationship', relationship);
 
       if (!(relationship && relationship.data && relationship.data.length > 0)) {
         continue;
@@ -134,7 +134,6 @@ export class JsonApiModel {
 
       for (const typeIndex of Object.keys(relationship.data)) {
         const typeName: string = relationship.data[typeIndex].type;
-        console.log(typeName);
 
         if (!_.includes(modelTypesFetched, typeName)) {
           modelTypesFetched.push(typeName);
@@ -151,7 +150,6 @@ export class JsonApiModel {
             typeName,
             remainingModels
           );
-          console.log('Models', relationshipModels);
 
           if (relationshipModels.length > 0) {
             allModels = allModels.concat(relationshipModels);
@@ -166,13 +164,11 @@ export class JsonApiModel {
   }
 
   private parseBelongsTo(data: any, included: Array<any>, remainingModels: Array<any>): void {
-    const belongsTo: any = Reflect.getMetadata('BelongsTo', this);
-    console.log(belongsTo);
+    const belongsTo: BelongsToMetadata = Reflect.getMetadata('BelongsTo', this);
 
     if (!belongsTo) {
       return;
     }
-    console.log(belongsTo, data, included);
     for (const metadata of belongsTo) {
       const relationship: any = data.relationships ? data.relationships[metadata.relationship] : null;
       if (relationship && relationship.data) {
@@ -190,7 +186,6 @@ export class JsonApiModel {
               typeName,
               remainingModels
             );
-            console.log('Model', relationshipModel);
 
             if (relationshipModel) {
               this[metadata.propertyName] = relationshipModel;
@@ -213,7 +208,6 @@ export class JsonApiModel {
     const relationshipList: Array<T> = [];
 
     data.forEach((item: any) => {
-      console.log('gethasMany');
       const relationshipData: any = _.chain(remainingModels)
         .filter(['id', item.id])
         .filter(['type', typeName])
@@ -246,8 +240,6 @@ export class JsonApiModel {
   ): T | null {
     const id: string = data.id;
     
-    console.log('getBelongsToRe');
-
     const relationshipData: any = _.chain(remainingModels)
       .filter(['id', id])
       .filter(['type', typeName])

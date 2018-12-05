@@ -546,5 +546,57 @@ describe('JsonApiDatastore', () => {
         }
       });
     });
+
+    it('should remove the belongsTo relationship', () => {
+      const book = datastore.createRecord(Book, {
+        title: BOOK_TITLE
+      });
+      book.author = new Author(datastore, {
+        id: AUTHOR_ID
+      });
+
+      book.author = null;
+
+      book.save().subscribe();
+      const expectedUrl = `${BASE_URL}/${API_VERSION}/books`;
+      const saveRequest = httpMock.expectOne({ method: 'POST', url: expectedUrl });
+      const obj = saveRequest.request.body.data;
+      expect(obj.relationships.author.data).toBeNull();
+
+      saveRequest.flush({
+        data: {
+          id: obj.id,
+          attributes: {
+            name: 'Potter',
+          }
+        }
+      });
+    });
+
+    it('should remove the hasMany relationship', () => {
+      const author = new Author(datastore, {
+        attributes: {
+          date_of_birth: parse(AUTHOR_BIRTH),
+          name: AUTHOR_NAME
+        }
+      });
+      author.books = [new Book(datastore, { title: BOOK_TITLE })];
+      author.books = [];
+
+      author.save().subscribe();
+      const expectedUrl = `${BASE_URL}/${API_VERSION}/authors`;
+      const saveRequest = httpMock.expectOne({ method: 'POST', url: expectedUrl });
+      const obj = saveRequest.request.body.data;
+      expect(obj.relationships.books.data).toEqual([]);
+
+      saveRequest.flush({
+        data: {
+          id: obj.id,
+          attributes: {
+            name: 'Potter',
+          }
+        }
+      });
+    });
   });
 });

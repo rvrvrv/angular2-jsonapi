@@ -10,8 +10,14 @@ import * as qs from 'qs';
 import { DatastoreConfig } from '../interfaces/datastore-config.interface';
 import { ModelConfig } from '../interfaces/model-config.interface';
 import { AttributeMetadata } from '../constants/symbols';
+import { HasManyMetadata, BelongsToMetadata } from '../interfaces/relationship_metadata.interface';
 
-export type ModelType<T extends JsonApiModel> = { new(datastore: JsonApiDatastore, data: any): T; };
+export type ModelType<T extends JsonApiModel> = { new(datastore: JsonApiDatastore, data: any): T; [key: string]: any };
+
+export interface RequestOptions {
+  headers?: HttpHeaders;
+  [key: string]:  any;
+}
 
 /**
  * HACK/FIXME:
@@ -25,8 +31,9 @@ const AttributeMetadataIndex: string = AttributeMetadata as any;
 @Injectable()
 export class JsonApiDatastore {
   private globalHeaders: HttpHeaders;
-  private globalRequestOptions: object = {};
+  private globalRequestOptions: RequestOptions = {};
   private internalStore: {[type: string]: {[id: string]: JsonApiModel}} = {};
+
   private toQueryString: Function = this.datastoreConfig.overrides
     && this.datastoreConfig.overrides.toQueryString ?
       this.datastoreConfig.overrides.toQueryString : this._toQueryString;
@@ -66,7 +73,7 @@ export class JsonApiDatastore {
     customUrl?: string
   ): Observable<JsonApiQueryData<T>> {
     const url: string = this.buildUrl(modelType, params, undefined, customUrl);
-    const requestOptions: object = this.buildRequestOptions({ headers });
+    const requestOptions: RequestOptions = this.buildRequestOptions({ headers });
 
     return this.http.get(url, requestOptions)
       .pipe(
@@ -216,34 +223,67 @@ export class JsonApiDatastore {
     return queryParams ? `${url}?${queryParams}` : url;
   }
 
-  protected getRelationships(data: any): any {
+  protected getRelationships<T extends JsonApiModel>(model: T): any {
     let relationships: any;
+    const data = <any>model;
 
-    for (const key in data) {
-      if (data.hasOwnProperty(key)) {
-        if (data[key] instanceof JsonApiModel) {
-          relationships = relationships || {};
-
-          if (data[key].id) {
-            relationships[key] = {
-              data: this.buildSingleRelationshipData(data[key])
-            };
-          }
-        } else if (data[key] instanceof Array && data[key].length > 0 && this.isValidToManyRelation(data[key])) {
-          relationships = relationships || {};
-
-          const relationshipData = data[key]
-            .filter((model: JsonApiModel) => model.id)
-            .map((model: JsonApiModel) => this.buildSingleRelationshipData(model));
-
-          relationships[key] = {
-            data: relationshipData
-          };
-        }
+    _.forOwn(data, (propertyValue, propertyName) => {
+      if (!(propertyValue instanceof JsonApiModel)) {
+        return;
       }
-    }
+      relationships = relationships || {};
+
+      if (!propertyValue.id) {
+        return;
+      }
+      relationships[propertyName] = {
+        data: this.buildSingleRelationshipData(propertyValue)
+      };
+    });
+    _.forOwn(data, (propertyValue, propertyName) => {
+      const hasMany = propertyValue instanceof Array &&
+        propertyValue.length > 0 &&
+        this.isValidToManyRelation(propertyValue);
+
+      if (!hasMany) {
+        return;
+      }
+      relationships = relationships || {};
+
+      const relationshipData = data[propertyName]
+        .filter((model: JsonApiModel) => model.id)
+        .map((model: JsonApiModel) => this.buildSingleRelationshipData(model));
+
+      relationships[propertyName] = {
+        data: relationshipData
+      };
+    });
+
+    this.belongsToRelationsToBeDeleted(model).forEach((toDelete) => {
+      relationships = relationships || {};
+      relationships[toDelete] = { data: null };
+    });
+
+    this.hasManyRelationsToBeDeleted(model).forEach((toDelete) => {
+      relationships = relationships || {};
+      relationships[toDelete] = { data: [] };
+    });
 
     return relationships;
+  }
+
+  private belongsToRelationsToBeDeleted<T extends JsonApiModel>(model: T | {[key: string]: any}) {
+    const belongsToMetadata: BelongsToMetadata = Reflect.getMetadata('BelongsTo', model) || [];
+    return belongsToMetadata.filter((entity) => model.hasOwnProperty(entity.propertyName))
+      .filter((entity) => model[entity.propertyName] === null)
+      .map((entity) => entity.relationship);
+  }
+
+  private hasManyRelationsToBeDeleted<T extends JsonApiModel>(model: T | {[key: string]: any}) {
+    const hasManyMetadata: HasManyMetadata = Reflect.getMetadata('HasMany', model) || [];
+    return hasManyMetadata.filter((entity) => model.hasOwnProperty(entity.propertyName))
+      .filter((entity) => _.isEmpty(model[entity.propertyName]))
+      .map((entity) => entity.relationship);
   }
 
   protected isValidToManyRelation(objects: Array<any>): boolean {
@@ -255,16 +295,16 @@ export class JsonApiDatastore {
 
   protected buildSingleRelationshipData(model: JsonApiModel): any {
     const relationshipType: string = model.modelConfig.type;
-    const relationShipData: { type: string, id?: string, attributes?: any } = { type: relationshipType };
+    const relationshipData: { type: string, id?: string, attributes?: any } = { type: relationshipType };
 
     if (model.id) {
-      relationShipData.id = model.id;
+      relationshipData.id = model.id;
     } else {
       const attributesMetadata: any = Reflect.getMetadata('Attribute', model);
-      relationShipData.attributes = this.getDirtyAttributes(attributesMetadata, model);
+      relationshipData.attributes = this.getDirtyAttributes(attributesMetadata, model);
     }
 
-    return relationShipData;
+    return relationshipData;
   }
 
   protected extractQueryData<T extends JsonApiModel>(
@@ -370,29 +410,26 @@ export class JsonApiDatastore {
       'Content-Type': 'application/vnd.api+json'
     });
 
-    if (this.globalHeaders) {
-      this.globalHeaders.keys().forEach((key) => {
-        if (this.globalHeaders.has(key)) {
-          requestHeaders = requestHeaders.set(key, this.globalHeaders.get(key)!);
-        }
-      });
-    }
-
-    if (customHeaders) {
-      customHeaders.keys().forEach((key) => {
-        if (customHeaders.has(key)) {
-          requestHeaders = requestHeaders.set(key, customHeaders.get(key)!);
-        }
-      });
-    }
+    requestHeaders = this.merge(requestHeaders, this.globalHeaders);
+    requestHeaders = this.merge(requestHeaders, customHeaders);
 
     return requestHeaders;
   }
 
-  private buildRequestOptions(customOptions: any = {}): object {
+  private merge(a: HttpHeaders, b: HttpHeaders | undefined) {
+    if (!b) {
+      return a;
+    }
+    return _.chain(b.keys())
+      .filter((key) => b.has(key))
+      .reduce((a: HttpHeaders, key: string) => a.set(key, b.get(key)!), a)
+      .value();
+  }
+
+  private buildRequestOptions(customOptions: RequestOptions = {}): RequestOptions {
     const httpHeaders: HttpHeaders = this.buildHttpHeaders(customOptions.headers);
 
-    const requestOptions: object = Object.assign(customOptions, {
+    const requestOptions: RequestOptions = Object.assign(customOptions, {
       headers: httpHeaders
     });
 

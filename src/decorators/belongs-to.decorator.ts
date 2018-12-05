@@ -1,6 +1,8 @@
+import { BelongsToMetadata } from '../interfaces/relationship_metadata.interface';
+
 export function BelongsTo(config: any = {}) {
-  return function (target: any, propertyName: string | symbol) {
-    const annotations = Reflect.getMetadata('BelongsTo', target) || [];
+  return function (target: any, propertyName: string) {
+    const annotations: BelongsToMetadata = Reflect.getMetadata('BelongsTo', target) || [];
 
     annotations.push({
       propertyName,
