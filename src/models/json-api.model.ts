@@ -116,7 +116,6 @@ export class JsonApiModel {
     return Reflect.getMetadata('JsonApiModelConfig', this.constructor);
   }
 
-
   private parseHasMany(data: any, included: any, remainingModels: Array<any>): void {
     const hasMany: HasManyMetadata = Reflect.getMetadata('HasMany', this);
     if (!hasMany) {
@@ -141,7 +140,7 @@ export class JsonApiModel {
           const modelType: ModelType<this> = Reflect.getMetadata('JsonApiDatastoreConfig', this.internalDatastore.constructor).models[typeName];
 
           if (!modelType) {
-            throw { message: 'parseHasMany - Model type for relationship ' + typeName + ' not found.' };
+            throw { message: `parseHasMany - Model type for relationship ${typeName} not found.` };
           }
           const relationshipModels: JsonApiModel[] = this.getHasManyRelationship(
             modelType,
@@ -191,7 +190,7 @@ export class JsonApiModel {
               this[metadata.propertyName] = relationshipModel;
             }
           } else {
-            throw { message: 'parseBelongsTo - Model type for relationship ' + typeName + ' not found.' };
+            throw { message: `parseBelongsTo - Model type for relationship ${typeName} not found.` };
           }
         }
       }
@@ -230,7 +229,6 @@ export class JsonApiModel {
     return relationshipList;
   }
 
-
   private getBelongsToRelationship<T extends JsonApiModel>(
     modelType: ModelType<T>,
     data: any,
@@ -239,7 +237,7 @@ export class JsonApiModel {
     remainingModels: Array<any>
   ): T | null {
     const id: string = data.id;
-    
+
     const relationshipData: any = _.chain(remainingModels)
       .filter(['id', id])
       .filter(['type', typeName])

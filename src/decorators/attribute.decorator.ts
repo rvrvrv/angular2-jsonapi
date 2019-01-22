@@ -59,13 +59,13 @@ export function Attribute(options: AttributeDecoratorOptions = {}): PropertyDeco
         oldValue,
         nested:false,
         serializedName: options.serializedName,
-        hasDirtyAttributes: !_.isEqual(oldValue,newValue),
+        hasDirtyAttributes: !_.isEqual(oldValue, newValue),
         serialisationValue: converter(targetType, newValue, true)
       };
     };
 
     const getter = function () {
-      return this['_' + propertyName];
+      return this[`_${propertyName}`];
     };
 
     const setter = function (newVal: any) {
@@ -80,7 +80,7 @@ export function Attribute(options: AttributeDecoratorOptions = {}): PropertyDeco
         }
       }
 
-      this['_' + propertyName] = convertedValue;
+      this[`_${propertyName}`] = convertedValue;
       setMetadata(this, oldValue, convertedValue);
     };
 
