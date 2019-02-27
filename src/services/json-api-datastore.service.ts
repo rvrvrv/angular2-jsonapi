@@ -312,9 +312,9 @@ export class JsonApiDatastore {
     modelType: ModelType<T>,
     withMeta = false
   ): Array<T> | JsonApiQueryData<T> {
-    const wipResponse: {data?: any, included?: any} = <any>response;
-    const data = wipResponse.data;
-    const included = wipResponse.included;
+    const unwrapedResponse: {data?: any, included?: any} = <any>response;
+    const data = unwrapedResponse.data;
+    const included = unwrapedResponse.included;
     const models: T[] = [];
 
     data.forEach((modelData: any) => {
@@ -459,12 +459,13 @@ export class JsonApiDatastore {
 
   protected resetMetadataAttributes<T extends JsonApiModel>(res: T, attributesMetadata: any, modelType: ModelType<T>) {
     for (const propertyName in attributesMetadata) {
-      if (attributesMetadata.hasOwnProperty(propertyName)) {
-        const metadata: any = attributesMetadata[propertyName];
+      if (!attributesMetadata.hasOwnProperty(propertyName)) {
+        continue;
+      }
+      const metadata: any = attributesMetadata[propertyName];
 
-        if (metadata.hasDirtyAttributes) {
-          metadata.hasDirtyAttributes = false;
-        }
+      if (metadata.hasDirtyAttributes) {
+        metadata.hasDirtyAttributes = false;
       }
     }
 
@@ -476,24 +477,26 @@ export class JsonApiDatastore {
     const modelsTypes: any = Reflect.getMetadata('JsonApiDatastoreConfig', this.constructor).models;
 
     for (const relationship in relationships) {
-      if (relationships.hasOwnProperty(relationship) && model.hasOwnProperty(relationship)) {
-        const relationshipModel: JsonApiModel = model[relationship];
-        const hasMany: any[] = Reflect.getMetadata('HasMany', relationshipModel);
-        const propertyHasMany: any = _.find(hasMany, (property) => {
-          return modelsTypes[property.relationship] === model.constructor;
-        });
+      if (!relationships.hasOwnProperty(relationship) || !model.hasOwnProperty(relationship)) {
+        continue;
+      }
+      const relationshipModel: JsonApiModel = model[relationship];
+      const hasMany: any[] = Reflect.getMetadata('HasMany', relationshipModel);
+      const propertyHasMany: any = _.find(hasMany, (property) => {
+        return modelsTypes[property.relationship] === model.constructor;
+      });
 
-        if (propertyHasMany) {
-          relationshipModel[propertyHasMany.propertyName] = relationshipModel[propertyHasMany.propertyName] || [];
+      if (!propertyHasMany) {
+        continue;
+      }
+      relationshipModel[propertyHasMany.propertyName] = relationshipModel[propertyHasMany.propertyName] || [];
 
-          const indexOfModel = relationshipModel[propertyHasMany.propertyName].indexOf(model);
+      const indexOfModel = relationshipModel[propertyHasMany.propertyName].indexOf(model);
 
-          if (indexOfModel === -1) {
-            relationshipModel[propertyHasMany.propertyName].push(model);
-          } else {
-            relationshipModel[propertyHasMany.propertyName][indexOfModel] = model;
-          }
-        }
+      if (indexOfModel === -1) {
+        relationshipModel[propertyHasMany.propertyName].push(model);
+      } else {
+        relationshipModel[propertyHasMany.propertyName][indexOfModel] = model;
       }
     }
 
