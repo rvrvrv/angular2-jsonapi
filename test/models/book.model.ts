@@ -30,4 +30,8 @@ export class Book extends JsonApiModel {
   firstChapter: Chapter;
 
   @BelongsTo()  author: Author | null;
+
+  @BelongsTo() template: Book;
+
+  @HasMany() editions: Book;
 }

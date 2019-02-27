@@ -4,6 +4,7 @@ import { Attribute } from '../../src/decorators/attribute.decorator';
 import { BelongsTo } from '../../src/decorators/belongs-to.decorator';
 import { Chapter } from './chapter.model';
 import { Paragraph } from './paragraph.model';
+import { HasMany } from '../../src';
 
 @JsonApiModelConfig({
   type: 'sections'

@@ -40,20 +40,20 @@ export class JsonApiModel {
     return this.modelInitialization;
   }
 
-  public syncRelationships(data: any, included: any, remainingModels?: Array<any>): void {
+  public syncRelationships(modelData: any, included: any, remainingModels?: Array<any>): void {
     if (this.lastSyncModels === included) {
       return;
     }
 
-    if (data) {
+    if (modelData) {
       let modelsForProcessing = remainingModels;
 
       if (!modelsForProcessing) {
         modelsForProcessing = [].concat(included);
       }
 
-      this.parseHasMany(data, included, modelsForProcessing);
-      this.parseBelongsTo(data, included, modelsForProcessing);
+      this.parseHasMany(modelData, included, modelsForProcessing);
+      this.parseBelongsTo(modelData, included, modelsForProcessing);
     }
 
     this.lastSyncModels = included;
@@ -116,13 +116,13 @@ export class JsonApiModel {
     return Reflect.getMetadata('JsonApiModelConfig', this.constructor);
   }
 
-  private parseHasMany(data: any, included: any, remainingModels: Array<any>): void {
+  private parseHasMany(modelData: any, included: any, remainingModels: Array<any>): void {
     const hasMany: HasManyMetadata = Reflect.getMetadata('HasMany', this);
     if (!hasMany) {
       return;
     }
     for (const metadata of hasMany) {
-      const relationship: any = data.relationships ? data.relationships[metadata.relationship] : null;
+      const relationship: any = modelData.relationships ? modelData.relationships[metadata.relationship] : null;
 
       if (!(relationship && relationship.data && relationship.data.length > 0)) {
         continue;

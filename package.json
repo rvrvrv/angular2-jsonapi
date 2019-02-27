@@ -1,6 +1,6 @@
 {
   "name": "@asteasolutions/angular2-jsonapi",
-  "version": "7.2.6",
+  "version": "7.3.0",
   "description": "A lightweight Angular 2 adapter for JSON API",
   "scripts": {
     "build": "rimraf dist src/compiled && tslint src/**/*.ts && ngc",

@@ -317,12 +317,15 @@ export class JsonApiDatastore {
     const included = wipResponse.included;
     const models: T[] = [];
 
-    data.forEach((data: any) => {
-      const model: T = this.deserializeModel(modelType, data);
+    data.forEach((modelData: any) => {
+      const model: T = this.deserializeModel(modelType, modelData);
+      this.addToStore(model);
+
+      model.syncRelationships(modelData, data);
       this.addToStore(model);
 
       if (included) {
-        model.syncRelationships(data, included);
+        model.syncRelationships(modelData, included);
         this.addToStore(model);
       }
 

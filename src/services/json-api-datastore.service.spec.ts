@@ -257,6 +257,37 @@ describe('JsonApiDatastore', () => {
       const findAllRequest = httpMock.expectOne(expectedUrl);
       findAllRequest.flush({ data: [] });
     });
+
+    it('should query query', () => {
+      const expectedUrl = encodeURI(`${BASE_URL}/${API_VERSION}/books`);
+
+      datastore.query(Book).subscribe((books:Book[]) => {
+        expect(books.length).toBe(4);
+        const mainTemplate = books[0];
+        const book = books[1];
+        const edition1 = books[2];
+        const edition2 = books[3];
+
+        expect(book.template).toBeDefined();
+        expect(book.template).toEqual(mainTemplate);
+        expect(book.editions).toBeDefined();
+        expect(book.editions.length).toBe(2);
+        expect(book.editions[0]).toEqual(edition1);
+        expect(book.editions[1]).toEqual(edition2);
+        expect(edition1.template).toBeDefined();
+        expect(edition1.template).toEqual(book);
+        expect(edition2.template).toBeDefined();
+        expect(edition2.template).toEqual(book);
+      });
+
+      const queryRequest = httpMock.expectOne(expectedUrl);
+      const mainBookTemplate = getSampleBook(0, '1', undefined, ['1']);
+      const book = getSampleBook(1, '1', '0', ['2', '3']);
+      const edition1 = getSampleBook(2, '1', '1');
+      const edition2 = getSampleBook(3, '1', '1');
+      const books = [mainBookTemplate, book, edition1, edition2];
+      queryRequest.flush({ data: books });
+    });
   });
 
   describe('findRecord', () => {

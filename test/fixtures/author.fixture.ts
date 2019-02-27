@@ -45,7 +45,7 @@ export function getAuthorData(relationship?: string, total: number = 0): any {
 
     for (let i = 1; i <= total; i++) {
       response.relationships.books.data.push({
-        id: '' + i,
+        id: `${i}`,
         type: 'books'
       });
     }
@@ -100,14 +100,19 @@ export function getIncludedBooks(totalBooks: number, relationship?: string, tota
       responseArray.push(section);
     }
 
-    if (relationship && relationship.indexOf('books.firstChapter.firstSection.firstParagraph') !== -1) {
-      const paragraph = getSampleParagraph('1', '1');
-      responseArray.push(paragraph);
+    if (relationship && relationship.indexOf('books.firstChapter.firstSection.children') !== -1) {
+      const childSection = getSampleSection('2', '1');
+      responseArray.push(childSection);
     }
 
     if (relationship && relationship.indexOf('books.firstChapter.firstSection.firstParagraph.firstSentence') !== -1) {
       const sentence = getSampleSentence('1', '1');
       responseArray.push(sentence);
+    }
+
+    if (relationship && relationship.indexOf('books.firstChapter.firstSection.firstParagraph') !== -1) {
+      const paragraph = getSampleParagraph('1', '1');
+      responseArray.push(paragraph);
     }
   }
 
