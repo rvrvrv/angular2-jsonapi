@@ -618,7 +618,6 @@ describe('JsonApiDatastore', () => {
       const saveRequest = httpMock.expectOne({ method: 'POST', url: expectedUrl });
       const obj = saveRequest.request.body.data;
       expect(obj.relationships.books.data).toEqual([]);
-
       saveRequest.flush({
         data: {
           id: obj.id,

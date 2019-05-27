@@ -1,6 +1,6 @@
 {
   "name": "@asteasolutions/angular2-jsonapi",
-  "version": "7.3.5",
+  "version": "7.3.9",
   "description": "A lightweight Angular 2 adapter for JSON API",
   "scripts": {
     "build": "rimraf dist src/compiled && tslint src/**/*.ts && ngc",
@@ -30,25 +30,25 @@
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
   "dependencies": {
-    "@angular/animations": "^7.2.8",
-    "@angular/common": "^7.2.8",
-    "@angular/core": "^7.2.8",
-    "@angular/http": "^7.2.8",
-    "@angular/platform-browser": "^7.2.8",
-    "@angular/platform-browser-dynamic": "^7.2.8",
-    "@angular/platform-server": "^7.2.8",
+    "@angular/animations": "^7.2.15",
+    "@angular/common": "^7.2.15",
+    "@angular/core": "^7.2.15",
+    "@angular/http": "^7.2.15",
+    "@angular/platform-browser": "^7.2.15",
+    "@angular/platform-browser-dynamic": "^7.2.15",
+    "@angular/platform-server": "^7.2.15",
     "date-fns": "^1.29.0",
     "lodash": "^4.17.11",
     "qs": "^6.5.1",
-    "rxjs": "6.4.0"
+    "rxjs": "6.5.2"
   },
   "optionalDependencies": {
     "fsevents": "*"
   },
   "devDependencies": {
-    "@angular/cli": "^7.3.5",
-    "@angular/compiler": "^7.2.8",
-    "@angular/compiler-cli": "^7.2.8",
+    "@angular/cli": "^7.3.9",
+    "@angular/compiler": "^7.2.15",
+    "@angular/compiler-cli": "^7.2.15",
     "@types/date-fns": "^2.6.0",
     "@types/jasmine": "2.5.43",
     "@types/lodash": "4.14.108",
