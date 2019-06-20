@@ -1,7 +1,7 @@
 {
   "name": "@asteasolutions/angular2-jsonapi",
-  "version": "8.0.0",
-  "description": "A lightweight Angular 2 adapter for JSON API",
+  "version": "8.0.1",
+  "description": "A lightweight Angular adapter for JSON API",
   "scripts": {},
   "repository": {
     "type": "git",
@@ -21,8 +21,8 @@
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
   "peerDependencies": {
-    "@angular/core": "^8.0.0",
-    "@angular/common": "^8.0.0",
+    "@angular/core": "^8.0.1",
+    "@angular/common": "^8.0.1",
     "date-fns": "^1.29.0",
     "qs": "^6.5.1",
     "lodash": "^4.17.11",
