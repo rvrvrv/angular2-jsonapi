@@ -469,7 +469,7 @@ export class JsonApiDatastore {
       }
     }
 
-    res[AttributeMetadataIndex] = attributesMetadata;
+    (<any>res)[AttributeMetadataIndex] = attributesMetadata;
     return res;
   }
 
